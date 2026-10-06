@@ -1,16 +1,23 @@
-# vi_sinh_vien
+# Flutter — Ví Sinh Viên
 
-A new Flutter project.
+Mở thư mục này bằng Android Studio. Dùng Flutter 3.35.7, Dart 3.9.2.
 
-## Getting Started
+```sh
+flutter pub get --enforce-lockfile
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
+```
 
-This project is a starting point for a Flutter application.
+Chạy PostgreSQL và API trước. Xem [hướng dẫn đầy đủ](../docs/HUONG_DAN_CHAY.md).
+`10.0.2.2` dành cho Android Emulator; điện thoại thật dùng IP LAN của máy API.
 
-A few resources to get you started if this is your first Flutter project:
+Code chia thành `api_client.dart`, `models.dart`, `widgets.dart` và các màn hình
+trong `screens/`. Dùng StatefulWidget, không thêm thư viện quản lý state.
+Biểu đồ dùng thanh theo tỷ lệ tổng chi để dễ hiểu và sửa.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```sh
+flutter analyze
+flutter test
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Hai test HTTP thật được chạy riêng bằng `RUN_FLUTTER_LIVE=1 bash scripts/test-api.sh`
+từ thư mục gốc. Không đưa mật khẩu database vào ứng dụng.

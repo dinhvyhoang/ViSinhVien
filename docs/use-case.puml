@@ -1,0 +1,20 @@
+@startuml
+left to right direction
+actor "Sinh viên" as Student
+rectangle "Ví Sinh Viên (một người dùng)" {
+  usecase "Thêm khoản thu/chi" as Add
+  usecase "Xem, tìm kiếm và lọc" as Read
+  usecase "Sửa giao dịch" as Edit
+  usecase "Xóa có xác nhận" as Delete
+  usecase "Quản lý danh mục" as Category
+  usecase "Xem tổng quan và biểu đồ" as Report
+  usecase "Thiết lập ngân sách" as Budget
+}
+Student --> Add
+Student --> Read
+Student --> Edit
+Student --> Delete
+Student --> Category
+Student --> Report
+Student --> Budget
+@enduml

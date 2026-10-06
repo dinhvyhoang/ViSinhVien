@@ -1,0 +1,17 @@
+@startuml
+start
+:Nhập loại, danh mục, số tiền, ngày, ghi chú;
+if (Flutter kiểm tra hợp lệ?) then (Có)
+  :Khóa nút lưu và gửi HTTP;
+  if (API kiểm tra hợp lệ và lưu PostgreSQL?) then (Có)
+    :API trả 201;
+    :Đóng form, tải lại danh sách;
+  else (Không)
+    :Hiện thông báo lỗi;
+    :Giữ nội dung form, mở lại nút lưu;
+  endif
+else (Không)
+  :Hiện lỗi nhập liệu;
+endif
+stop
+@enduml

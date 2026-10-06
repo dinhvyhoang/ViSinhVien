@@ -1,0 +1,20 @@
+@startuml
+actor "Sinh viên" as Student
+participant Flutter
+participant "ASP.NET Core API" as API
+database "PostgreSQL student_finance" as DB
+participant "pgAdmin 4" as Admin
+Student -> Flutter: Nhập khoản chi 35.000đ
+Flutter -> Flutter: Kiểm tra và khóa nút lưu
+Flutter -> API: POST /api/transactions
+API -> DB: Kiểm tra danh mục, lưu giao dịch
+DB --> API: ID và dữ liệu đã lưu
+API --> Flutter: 201 Created
+Flutter -> API: GET /api/transactions
+API -> DB: Đọc giao dịch
+DB --> API: Danh sách
+API --> Flutter: 200 OK
+Flutter --> Student: Hiện khoản chi mới
+Admin -> DB: SELECT giao dịch để kiểm tra
+DB --> Admin: Bản ghi 35.000đ
+@enduml
