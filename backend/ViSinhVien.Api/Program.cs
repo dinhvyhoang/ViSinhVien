@@ -21,12 +21,12 @@ app.Use(async (context, next) =>
         context.Response.StatusCode = 400;
         await context.Response.WriteAsJsonAsync(new { message = "Dữ liệu gửi lên không hợp lệ. Số tiền phải là số nguyên và ngày phải có dạng yyyy-MM-dd." });
     }
-    catch (DbUpdateException)
+    catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pg && pg.SqlState.StartsWith("23"))
     {
         context.Response.StatusCode = 409;
         await context.Response.WriteAsJsonAsync(new { message = "Dữ liệu bị trùng hoặc không còn hợp lệ. Hãy tải lại và thử lại." });
     }
-    catch (Npgsql.NpgsqlException)
+    catch (Exception ex) when (IsDatabaseError(ex))
     {
         context.Response.StatusCode = 503;
         await context.Response.WriteAsJsonAsync(new { message = "Không kết nối được PostgreSQL. Hãy kiểm tra database và thử lại." });
@@ -186,6 +186,13 @@ app.MapPut("/api/budgets/{month}", async (string month, BudgetInput input, Finan
 app.Run();
 
 static IResult Error(string message) => Results.BadRequest(new { message });
+static bool IsDatabaseError(Exception error)
+{
+    // EF Core có thể bọc lỗi mất kết nối trong InvalidOperationException.
+    for (Exception? current = error; current is not null; current = current.InnerException)
+        if (current is Npgsql.NpgsqlException) return true;
+    return false;
+}
 static bool TryMonth(string month, out DateOnly date) =>
     DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date)
     && date.Year is >= 1900 and <= 2100;
