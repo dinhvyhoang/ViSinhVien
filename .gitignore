@@ -12,3 +12,4 @@
 .vscode/
 *.log
 **/__pycache__/
+*.iml
