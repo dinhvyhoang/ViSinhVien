@@ -30,5 +30,9 @@ for attempt in range(60):
 else: raise SystemExit('Test API chưa khởi động. Xem .local/test-api.log')
 PY
 python3 -m unittest discover -s tests -v
+if [[ "${RUN_FLUTTER_LIVE:-0}" == "1" ]]; then
+  (cd mobile && flutter test test/live_api_test.dart --reporter expanded \
+    --dart-define=LIVE_API=true --dart-define=API_BASE_URL=http://127.0.0.1:5081)
+fi
 # Direct SQL confirms the smoke test wrote real PostgreSQL rows.
 docker compose exec -T postgres psql -U student -d "$test_db" -c 'SELECT count(*) AS transactions_written FROM transactions;'

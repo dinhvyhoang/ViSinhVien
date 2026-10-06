@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'api_client.dart';
 import 'screens/transactions_screen.dart';
 import 'screens/categories_screen.dart';
+import 'screens/dashboard_screen.dart';
 
 void main() => runApp(const FinanceApp());
 
@@ -50,13 +51,19 @@ class _FinanceHomeState extends State<FinanceHome> {
   int _tab = 0;
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: _tab == 0
-        ? TransactionsScreen(api: widget.api)
-        : CategoriesScreen(api: widget.api),
+    body: switch (_tab) {
+      0 => DashboardScreen(api: widget.api),
+      1 => TransactionsScreen(api: widget.api),
+      _ => CategoriesScreen(api: widget.api),
+    },
     bottomNavigationBar: NavigationBar(
       selectedIndex: _tab,
       onDestinationSelected: (index) => setState(() => _tab = index),
       destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.home_outlined),
+          label: 'Tổng quan',
+        ),
         NavigationDestination(
           icon: Icon(Icons.receipt_long_outlined),
           label: 'Giao dịch',
