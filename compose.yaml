@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: student_finance
+      POSTGRES_USER: student
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Create .env first}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - finance_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U student -d student_finance"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    profiles: ["admin"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-student@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Create .env first}
+    ports:
+      - "127.0.0.1:5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  finance_data:
+  pgadmin_data:

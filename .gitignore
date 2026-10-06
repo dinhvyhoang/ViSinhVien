@@ -1,0 +1,13 @@
+.env
+.local/
+**/bin/
+**/obj/
+**/.dart_tool/
+**/build/
+**/.flutter-plugins-dependencies
+**/android/local.properties
+**/.gradle/
+**/*.user
+.idea/
+.vscode/
+*.log
