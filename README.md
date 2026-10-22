@@ -10,6 +10,10 @@ Bản đầu gồm thêm/xem/sửa/xóa giao dịch, lọc và tìm kiếm, danh
 tổng quan tháng, biểu đồ tròn/cột theo danh mục, ngân sách tháng và từng danh mục, cảnh báo 80%/100%/vượt mức, báo cáo tuần/tháng/năm và xuất CSV.
 Giao diện dùng StatefulWidget và HTTP trực tiếp, không thêm kiến trúc phức tạp.
 
+## Bạn clone về máy khác?
+
+Làm theo [hướng dẫn Windows từng bước](docs/CHAY_TREN_MAY_KHAC.md): tạo database trên máy mình, chạy API rồi mở Chrome hoặc Android Emulator. Không cần chép database hoặc dùng đường dẫn trên máy tác giả.
+
 ## Chạy nhanh
 
 Sau khi tạo `.env` và cài .NET 8 + Flutter 3.47.6 + Docker:
