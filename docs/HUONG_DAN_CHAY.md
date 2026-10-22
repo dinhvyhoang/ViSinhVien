@@ -2,8 +2,8 @@
 
 ## 1. Cài công cụ trên máy của bạn
 
-- Flutter **3.35.7** (Dart 3.9.2), Android Studio + Android SDK và emulator.
-- .NET **8 SDK** (8.0.419 hoặc bản vá 8.0.4xx mới hơn), Visual Studio 2022
+- Flutter **3.47.6** (Dart 3.13.5, bản đã kiểm chứng trên máy này), Android Studio + Android SDK và emulator.
+- .NET **8 SDK** (8.0.419 hoặc bản vá 8.0.4xx mới hơn) và **ASP.NET Core Runtime 8** (nếu trên máy chỉ có SDK/Runtime 10), Visual Studio 2022
   nếu muốn dùng IDE cho backend.
 - Docker Desktop + Docker Compose để chạy PostgreSQL 16. pgAdmin 4 có thể
   cài trực tiếp trên Windows hoặc dùng container trong dự án.
@@ -71,7 +71,7 @@ curl http://127.0.0.1:5080/api/categories
 
 Kết quả health phải có `status: ok`; danh mục có Ăn uống, Đi lại, Học tập,
 Sinh hoạt, Gia đình hỗ trợ, Làm thêm. Trong pgAdmin refresh Schemas → public →
-Tables để thấy ba bảng. Migration là nguồn cấu trúc; SQL tương ứng ở
+Tables để thấy các bảng `categories`, `transactions`, `monthly_budgets`, `category_budgets`, `user_profile`. Migration là nguồn cấu trúc; SQL tương ứng ở
 `docs/database.sql`. Xem [API.md](API.md) để thử các endpoint.
 
 Nếu dùng PostgreSQL cài sẵn, trong PowerShell đặt chuỗi kết nối với thông tin
@@ -83,6 +83,23 @@ dotnet tool restore
 dotnet ef database update --project backend/ViSinhVien.Api
 dotnet run --no-launch-profile --project backend/ViSinhVien.Api --urls http://0.0.0.0:5080
 ```
+
+### Chạy PostgreSQL 18 cài sẵn trên Windows (không cần Docker)
+
+Nếu máy đang dùng PostgreSQL 18 và pgAdmin 4, **không cần cài thêm PostgreSQL bằng Docker**:
+
+1. Mở pgAdmin 4, kết nối PostgreSQL 18, nhấp chuột phải **Databases → Create → Database** và tạo `student_finance` (database này độc lập với `cafe_pos`).
+2. Mở PowerShell tại **thư mục gốc** `ViSinhVien`, chạy:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-api-local.ps1 -DbUser postgres
+```
+
+3. Nhập mật khẩu PostgreSQL khi được hỏi. Script không ghi mật khẩu vào source; tự chạy EF migrations và khởi động API trên `http://127.0.0.1:5080`.
+4. Mở `http://127.0.0.1:5080/api/health` trong trình duyệt; phải thấy `status: ok`. Nếu đã lỡ dùng sai mật khẩu, dừng script và chạy lại với mật khẩu chính xác.
+5. Khi chạy trên **điện thoại thật** qua cùng mạng Wi-Fi, bổ sung `-AllowLan`, mở cổng 5080 trên *mạng riêng* và truyền `API_BASE_URL=http://IP_MAY_TINH:5080` cho Flutter. API demo **chưa có đăng nhập**, không mở cổng này lên Internet.
+
+Lưu ý: Windows script `run-api.ps1` cũ là lựa chọn **Docker**; `run-api-local.ps1` là lựa chọn **PostgreSQL đã cài sẵn**. Chỉ dùng một lựa chọn cho cổng 5432 để tránh xung đột.
 
 ## 4. Chạy Flutter trên Android Emulator
 
@@ -163,3 +180,4 @@ docker compose exec -T postgres pg_dump -U student -d student_finance > .local/s
 Dừng API bằng Ctrl+C, dừng Docker bằng `docker compose --profile admin stop`.
 Không dùng `down -v` nếu cần giữ giao dịch. Khi mở lại, chạy script API và
 Flutter; pgAdmin có thể đóng mà ứng dụng vẫn hoạt động.
+

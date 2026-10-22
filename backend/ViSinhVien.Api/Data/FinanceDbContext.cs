@@ -7,6 +7,8 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options) : DbCo
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<FinanceTransaction> Transactions => Set<FinanceTransaction>();
     public DbSet<MonthlyBudget> MonthlyBudgets => Set<MonthlyBudget>();
+    public DbSet<CategoryBudget> CategoryBudgets => Set<CategoryBudget>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<Category>(e =>
@@ -52,6 +54,26 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options) : DbCo
             e.Property(x => x.BudgetMonth).HasColumnName("budget_month");
             e.Property(x => x.LimitVnd).HasColumnName("limit_vnd");
             e.HasIndex(x => x.BudgetMonth).IsUnique();
+        });
+        model.Entity<CategoryBudget>(e =>
+        {
+            e.ToTable("category_budgets", t =>
+            {
+                t.HasCheckConstraint("ck_category_budget_limit", "limit_vnd > 0 AND limit_vnd <= 1000000000000");
+                t.HasCheckConstraint("ck_category_budget_month", "EXTRACT(DAY FROM budget_month) = 1");
+            });
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.BudgetMonth).HasColumnName("budget_month");
+            e.Property(x => x.CategoryId).HasColumnName("category_id");
+            e.Property(x => x.LimitVnd).HasColumnName("limit_vnd");
+            e.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.BudgetMonth, x.CategoryId }).IsUnique();
+        });
+        model.Entity<UserProfile>(e =>
+        {
+            e.ToTable("user_profile", t => t.HasCheckConstraint("ck_single_profile", "id = 1"));
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
+            e.Property(x => x.DisplayName).HasColumnName("display_name").HasMaxLength(80);
         });
     }
 }

@@ -1,6 +1,6 @@
 # Flutter — Ví Sinh Viên
 
-Mở thư mục này bằng Android Studio. Dùng Flutter 3.35.7, Dart 3.9.2.
+Mở thư mục này bằng Android Studio. Đã kiểm chứng với Flutter 3.47.6, Dart 3.13.5.
 
 ```sh
 flutter pub get --enforce-lockfile
@@ -21,3 +21,13 @@ flutter test
 
 Hai test HTTP thật được chạy riêng bằng `RUN_FLUTTER_LIVE=1 bash scripts/test-api.sh`
 từ thư mục gốc. Không đưa mật khẩu database vào ứng dụng.
+
+
+### Địa chỉ API mặc định
+
+- Android Emulator: `http://10.0.2.2:5080`.
+- Chrome trên máy phát triển: `http://127.0.0.1:5080`.
+- Điện thoại thật: thêm `--dart-define=API_BASE_URL=http://IP_MAY_TINH:5080` và chạy API với `-AllowLan` trên mạng riêng.
+
+Không có dữ liệu giao dịch, ngân sách, số dư hay biểu đồ giả được gắn trong ứng dụng; màn hình trống sẽ hiển thị thông báo để tạo dữ liệu thật. `MockClient` chỉ dùng trong thư mục `test/` để tự động kiểm tra giao diện, không chạy trong bản phát hành.
+

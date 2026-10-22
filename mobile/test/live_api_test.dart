@@ -19,7 +19,7 @@ void main() {
                   body: {
                     'categoryId': 1,
                     'amountVnd': 35000,
-                    'transactionDate': '2099-10-15',
+                    'transactionDate': '2000-10-15',
                     'note': 'Flutter live test',
                   },
                 )
@@ -32,7 +32,7 @@ void main() {
             await api.request(
                   'GET',
                   '/transactions',
-                  query: {'month': '2099-10', 'search': 'Flutter live test'},
+                  query: {'month': '2000-10', 'search': 'Flutter live test'},
                 )
                 as Map;
         expect((list['items'] as List).any((x) => x['id'] == id), isTrue);
@@ -42,7 +42,7 @@ void main() {
           body: {
             'categoryId': 1,
             'amountVnd': 42000,
-            'transactionDate': '2099-10-15',
+            'transactionDate': '2000-10-15',
             'note': 'Updated Flutter live test',
           },
         );
@@ -50,7 +50,7 @@ void main() {
             await api.request(
                   'GET',
                   '/reports/monthly',
-                  query: {'month': '2099-10'},
+                  query: {'month': '2000-10'},
                 )
                 as Map;
         expect(report['expenseVnd'], 42000);
@@ -60,7 +60,7 @@ void main() {
             await api.request(
                   'GET',
                   '/reports/monthly',
-                  query: {'month': '2099-10'},
+                  query: {'month': '2000-10'},
                 )
                 as Map;
         expect(after['expenseVnd'], 0);
@@ -82,7 +82,7 @@ void main() {
           body: {
             'categoryId': 1,
             'amountVnd': -1,
-            'transactionDate': '2099-10-15',
+            'transactionDate': '2000-10-15',
             'note': '',
           },
         ),

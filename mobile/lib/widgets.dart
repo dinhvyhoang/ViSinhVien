@@ -33,17 +33,33 @@ class MonthSelector extends StatelessWidget {
             : () => onChanged(DateTime(month.year, month.month - 1)),
         icon: const Icon(Icons.chevron_left),
       ),
-      TextButton(
-        onPressed: () async {
-          final date = await showDatePicker(
-            context: context,
-            initialDate: month,
-            firstDate: DateTime(1900),
-            lastDate: DateTime(2100, 12, 31),
-          );
-          if (date != null) onChanged(DateTime(date.year, date.month));
-        },
-        child: Text('Tháng ${DateFormat('MM/yyyy').format(month)}'),
+      Expanded(
+        child: TextButton(
+          onPressed: () async {
+            final date = await showDatePicker(
+              context: context,
+              initialDate: month,
+              firstDate: DateTime(1900),
+              lastDate: DateTime(2100, 12, 31),
+            );
+            if (date != null) onChanged(DateTime(date.year, date.month));
+          },
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.calendar_month_outlined, size: 18),
+                const SizedBox(width: 7),
+                Text(
+                  'Tháng ${DateFormat('MM/yyyy').format(month)}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const Icon(Icons.expand_more, size: 16),
+              ],
+            ),
+          ),
+        ),
       ),
       IconButton(
         tooltip: 'Tháng sau',

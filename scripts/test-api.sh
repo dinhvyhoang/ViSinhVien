@@ -18,7 +18,7 @@ docker compose exec -T postgres createdb -U student "$test_db"
 export ConnectionStrings__Finance="Host=127.0.0.1;Port=5432;Database=$test_db;Username=student;Password=${POSTGRES_PASSWORD:?}"
 dotnet tool restore
 dotnet ef database update --project backend/ViSinhVien.Api
-dotnet run --no-launch-profile --no-build --project backend/ViSinhVien.Api --urls http://127.0.0.1:5081 > .local/test-api.log 2>&1 &
+dotnet run --no-launch-profile --project backend/ViSinhVien.Api --urls http://127.0.0.1:5081 > .local/test-api.log 2>&1 &
 api_pid=$!
 python3 - <<'PY'
 import time, urllib.request

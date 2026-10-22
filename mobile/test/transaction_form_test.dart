@@ -39,9 +39,8 @@ Future<void> openForm(WidgetTester tester, ApiClient api) async {
 }
 
 Future<void> fillForm(WidgetTester tester) async {
-  await tester.tap(find.byType(DropdownButtonFormField<int>));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Ăn uống').last);
+  await tester.ensureVisible(find.text('Ăn uống'));
+  await tester.tap(find.text('Ăn uống'));
   await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const Key('amount')), '35000');
   await tester.enterText(find.byKey(const Key('note')), 'Ăn trưa');

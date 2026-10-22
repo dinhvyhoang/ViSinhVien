@@ -23,3 +23,16 @@ public class MonthlyBudget
     public DateOnly BudgetMonth { get; set; }
     public long LimitVnd { get; set; }
 }
+public class CategoryBudget
+{
+    public long Id { get; set; }
+    public DateOnly BudgetMonth { get; set; }
+    public long CategoryId { get; set; }
+    public Category Category { get; set; } = null!;
+    public long LimitVnd { get; set; }
+}
+public class UserProfile
+{
+    public int Id { get; set; }
+    public string DisplayName { get; set; } = "";
+}

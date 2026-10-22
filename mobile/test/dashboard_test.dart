@@ -6,85 +6,117 @@ import 'package:http/testing.dart';
 import 'package:vi_sinh_vien/api_client.dart';
 import 'package:vi_sinh_vien/main.dart';
 
+http.Response jsonResponse(Object data) => http.Response(
+  jsonEncode(data),
+  200,
+  headers: {'content-type': 'application/json; charset=utf-8'},
+);
+void viewport(WidgetTester tester, Size size) {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+}
+
+Map<String, dynamic> report({int income = 0, int expense = 0, int? limit}) => {
+  'incomeVnd': income,
+  'expenseVnd': expense,
+  'balanceVnd': income - expense,
+  'budgetLimitVnd': limit,
+  'budgetPercent': limit == null ? null : expense * 100 / limit,
+  'budgetStatus': limit == null
+      ? 'unset'
+      : expense > limit
+      ? 'exceeded'
+      : 'normal',
+  'expenseByCategory': [],
+};
 void main() {
   testWidgets(
-    'Dashboard displays totals, warning and category chart on a narrow screen',
+    'Dashboard uses real responses and starts empty without sample identity or transactions',
     (tester) async {
-      tester.view.physicalSize = const Size(360, 900);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+      viewport(tester, const Size(360, 900));
       final api = ApiClient(
-        client: MockClient(
-          (req) async => http.Response(
-            jsonEncode({
-              'incomeVnd': 20000,
-              'expenseVnd': 35000,
-              'balanceVnd': -15000,
-              'budgetLimitVnd': 30000,
-              'budgetPercent': 116.67,
-              'budgetStatus': 'exceeded',
-              'expenseByCategory': [
-                {
-                  'categoryId': 1,
-                  'categoryName': 'Ăn uống',
-                  'amountVnd': 35000,
-                },
-              ],
-            }),
-            200,
-            headers: {'content-type': 'application/json; charset=utf-8'},
-          ),
-        ),
+        client: MockClient((req) async {
+          if (req.url.path.endsWith('/profile')) {
+            return jsonResponse({'displayName': ''});
+          }
+          if (req.url.path.endsWith('/transactions')) {
+            return jsonResponse({'items': [], 'total': 0});
+          }
+          return jsonResponse(report());
+        }),
       );
       await tester.pumpWidget(FinanceApp(api: api));
       await tester.pumpAndSettle();
-      expect(find.text('20.000 đ'), findsOneWidget);
-      expect(
-        find.text('−15.000 đ'),
-        findsNothing,
-      ); // intl uses the normal minus sign.
-      expect(find.text('-15.000 đ'), findsOneWidget);
-      expect(find.text('Đã vượt ngân sách tháng!'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('Ăn uống'), 150);
-      expect(find.text('Ăn uống'), findsOneWidget);
+      expect(find.text('Chào bạn! 👋'), findsOneWidget);
+      expect(find.text('Nguyễn Văn An'), findsNothing);
+      await tester.scrollUntilVisible(find.text('Chưa có giao dịch'), 150);
+      expect(find.text('Chưa có giao dịch'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets('Budget dialog saves integer VND and reloads the report', (
+  testWidgets(
+    'Dashboard displays server totals and warning at narrow width, privacy hides all amounts',
+    (tester) async {
+      viewport(tester, const Size(360, 900));
+      final api = ApiClient(
+        client: MockClient((req) async {
+          if (req.url.path.endsWith('/profile')) {
+            return jsonResponse({'displayName': 'Minh'});
+          }
+          if (req.url.path.endsWith('/transactions')) {
+            return jsonResponse({'items': [], 'total': 0});
+          }
+          return jsonResponse(
+            report(income: 20000, expense: 35000, limit: 30000),
+          );
+        }),
+      );
+      await tester.pumpWidget(FinanceApp(api: api));
+      await tester.pumpAndSettle();
+      expect(find.text('Chào Minh! 👋'), findsOneWidget);
+      expect(find.text('20.000 đ'), findsOneWidget);
+      expect(find.text('-15.000 đ'), findsOneWidget);
+      await tester.tap(find.byTooltip('Ẩn số tiền'));
+      await tester.pumpAndSettle();
+      expect(find.text('-15.000 đ'), findsNothing);
+      expect(find.text('•••••• đ'), findsNWidgets(3));
+      await tester.scrollUntilVisible(
+        find.text('Đã vượt ngân sách tháng!'),
+        100,
+      );
+      expect(find.text('Đã vượt ngân sách tháng!'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Budget dialog saves integer VND and reloads persisted report', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(800, 1200);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+    viewport(tester, const Size(600, 1200));
     int? limit;
     var reports = 0;
     final api = ApiClient(
       client: MockClient((req) async {
+        if (req.url.path.endsWith('/profile')) {
+          return jsonResponse({'displayName': ''});
+        }
+        if (req.url.path.endsWith('/transactions')) {
+          return jsonResponse({'items': [], 'total': 0});
+        }
         if (req.method == 'PUT') {
           limit = (jsonDecode(req.body) as Map)['limitVnd'] as int;
-          return http.Response('{}', 200);
+          return jsonResponse({'limitVnd': limit});
         }
         reports++;
-        return http.Response(
-          jsonEncode({
-            'incomeVnd': 0,
-            'expenseVnd': 0,
-            'balanceVnd': 0,
-            'budgetLimitVnd': limit,
-            'budgetPercent': limit == null ? null : 0,
-            'budgetStatus': limit == null ? 'unset' : 'normal',
-            'expenseByCategory': [],
-          }),
-          200,
-          headers: {'content-type': 'application/json; charset=utf-8'},
-        );
+        return jsonResponse(report(limit: limit));
       }),
     );
     await tester.pumpWidget(FinanceApp(api: api));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Thiết lập ngân sách'));
     await tester.tap(find.text('Thiết lập ngân sách'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), '500000');
@@ -92,6 +124,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(limit, 500000);
     expect(reports, 2);
+    await tester.ensureVisible(find.text('Đổi ngân sách'));
     expect(find.text('Đổi ngân sách'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'Dashboard network failure has retry and does not fabricate totals',
+    (tester) async {
+      viewport(tester, const Size(360, 800));
+      var failing = true;
+      final api = ApiClient(
+        client: MockClient((req) async {
+          if (failing) {
+            return http.Response(
+              '{"message":"Không kết nối được PostgreSQL"}',
+              503,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            );
+          }
+          if (req.url.path.endsWith('/profile')) {
+            return jsonResponse({'displayName': ''});
+          }
+          if (req.url.path.endsWith('/transactions')) {
+            return jsonResponse({'items': [], 'total': 0});
+          }
+          return jsonResponse(report());
+        }),
+      );
+      await tester.pumpWidget(FinanceApp(api: api));
+      await tester.pumpAndSettle();
+      expect(find.text('Không kết nối được PostgreSQL'), findsOneWidget);
+      expect(find.text('0 đ'), findsNothing);
+      failing = false;
+      await tester.tap(find.text('Thử lại'));
+      await tester.pumpAndSettle();
+      expect(find.text('Chào bạn! 👋'), findsOneWidget);
+    },
+  );
 }

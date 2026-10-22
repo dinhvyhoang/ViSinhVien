@@ -1,7 +1,9 @@
 using System.Globalization;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ViSinhVien.Api.Data;
 using ViSinhVien.Api.Models;
+using ViSinhVien.Api.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 var connection = builder.Configuration.GetConnectionString("Finance")
@@ -35,7 +37,7 @@ app.Use(async (context, next) =>
 
 app.MapGet("/api/health", async (FinanceDbContext db) =>
     await db.Database.CanConnectAsync()
-        ? Results.Ok(new { status = "ok", database = "student_finance" })
+        ? Results.Ok(new { status = "ok", database = db.Database.GetDbConnection().Database })
         : Results.Json(new { message = "PostgreSQL chưa sẵn sàng." }, statusCode: 503));
 
 app.MapGet("/api/categories", async (FinanceDbContext db) =>
@@ -43,14 +45,19 @@ app.MapGet("/api/categories", async (FinanceDbContext db) =>
 
 app.MapPost("/api/categories", async (CategoryInput input, FinanceDbContext db) =>
 {
-    var name = input.Name?.Trim() ?? "";
+    var name = (input.Name?.Trim() ?? "").Normalize(NormalizationForm.FormC);
     if (name.Length is < 1 or > 100 || input.Type is not ("income" or "expense"))
         return Error("Tên danh mục phải có 1–100 ký tự; loại phải là income hoặc expense.");
-    if (await db.Categories.AnyAsync(x => x.Type == input.Type && x.Name.ToLower() == name.ToLower()))
+    await using var change = await db.Database.BeginTransactionAsync();
+    var nameKey = input.Type + ":" + name.ToUpperInvariant();
+    await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({nameKey}, 0))");
+    var names = await db.Categories.Where(x => x.Type == input.Type).Select(x => x.Name).ToListAsync();
+    if (names.Any(existing => string.Equals(existing, name, StringComparison.OrdinalIgnoreCase)))
         return Error("Danh mục cùng tên và loại đã tồn tại.");
     var item = new Category { Name = name, Type = input.Type };
     db.Categories.Add(item);
     await db.SaveChangesAsync();
+    await change.CommitAsync();
     return Results.Created($"/api/categories/{item.Id}", item);
 });
 
@@ -58,13 +65,18 @@ app.MapPut("/api/categories/{id:long}", async (long id, CategoryEdit input, Fina
 {
     var item = await db.Categories.FindAsync(id);
     if (item is null) return Results.NotFound();
-    var name = input.Name?.Trim() ?? "";
+    var name = (input.Name?.Trim() ?? "").Normalize(NormalizationForm.FormC);
     if (name.Length is < 1 or > 100) return Error("Tên danh mục phải có 1–100 ký tự.");
-    if (await db.Categories.AnyAsync(x => x.Id != id && x.Type == item.Type && x.Name.ToLower() == name.ToLower()))
+    await using var change = await db.Database.BeginTransactionAsync();
+    var nameKey = item.Type + ":" + name.ToUpperInvariant();
+    await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({nameKey}, 0))");
+    var names = await db.Categories.Where(x => x.Id != id && x.Type == item.Type).Select(x => x.Name).ToListAsync();
+    if (names.Any(existing => string.Equals(existing, name, StringComparison.OrdinalIgnoreCase)))
         return Error("Danh mục cùng tên và loại đã tồn tại.");
     item.Name = name;
     item.IsArchived = input.IsArchived;
     await db.SaveChangesAsync();
+    await change.CommitAsync();
     return Results.Ok(item);
 });
 
@@ -72,6 +84,8 @@ app.MapGet("/api/transactions", async (FinanceDbContext db, string? month, strin
     long? categoryId, string? search, int page = 1, int pageSize = 20) =>
 {
     if (page < 1 || page > 1000000 || pageSize is < 1 or > 100) return Error("Phân trang không hợp lệ.");
+    if (categoryId is <= 0) return Error("Danh mục không hợp lệ.");
+    if (search?.Length > 500) return Error("Từ khóa tìm kiếm tối đa 500 ký tự.");
     var query = db.Transactions.AsNoTracking().AsQueryable();
     if (month is not null)
     {
@@ -87,8 +101,13 @@ app.MapGet("/api/transactions", async (FinanceDbContext db, string? month, strin
     if (categoryId is not null) query = query.Where(x => x.CategoryId == categoryId);
     if (!string.IsNullOrWhiteSpace(search))
     {
-        var text = search.Trim().ToLower();
-        query = query.Where(x => x.Note.ToLower().Contains(text) || x.Category.Name.ToLower().Contains(text));
+        var text = search.Trim();
+        // PostgreSQL installed with locale C cannot case-fold Vietnamese accented
+        // capitals. Compare candidate text consistently across Windows/Linux.
+        var candidates = await query.Select(x => new { x.Id, x.Note, CategoryName = x.Category.Name }).ToListAsync();
+        var matchingIds = candidates.Where(x => x.Note.Contains(text, StringComparison.OrdinalIgnoreCase)
+            || x.CategoryName.Contains(text, StringComparison.OrdinalIgnoreCase)).Select(x => x.Id).ToArray();
+        query = query.Where(x => matchingIds.Contains(x.Id));
     }
     var total = await query.CountAsync();
     var items = await query.OrderByDescending(x => x.TransactionDate).ThenByDescending(x => x.Id)
@@ -167,11 +186,17 @@ app.MapGet("/api/reports/monthly", async (string month, FinanceDbContext db) =>
         expenseByCategory = grouped.Where(x => x.type == "expense").OrderByDescending(x => x.amountVnd) });
 });
 
-app.MapGet("/api/budgets/{month}", async (string month, FinanceDbContext db) =>
+app.MapFinanceExtensions();
+
+// Removing the monthly cap never removes recorded transactions or category caps.
+// The mobile UI offers this as "Gỡ hạn mức" to return to the "Chưa thiết lập" state.
+app.MapDelete("/api/budgets/{month}", async (string month, FinanceDbContext db) =>
 {
     if (!TryMonth(month, out var start)) return Error("Tháng phải có dạng yyyy-MM.");
-    var item = await db.MonthlyBudgets.AsNoTracking().SingleOrDefaultAsync(x => x.BudgetMonth == start);
-    return Results.Ok(new { month, limitVnd = item?.LimitVnd });
+    var count = await db.MonthlyBudgets.Where(x => x.BudgetMonth == start).ExecuteDeleteAsync();
+    return count == 0
+        ? Results.NotFound(new { message = "Tháng này chưa thiết lập ngân sách." })
+        : Results.NoContent();
 });
 
 app.MapPut("/api/budgets/{month}", async (string month, BudgetInput input, FinanceDbContext db) =>
@@ -200,6 +225,8 @@ static async Task<string?> ValidateTransaction(TransactionInput input, FinanceDb
 {
     if (input.AmountVnd is <= 0 or > 1000000000000) return "Số tiền phải từ 1 đến 1.000.000.000.000 đồng.";
     if (input.TransactionDate.Year is < 1900 or > 2100) return "Ngày giao dịch phải nằm trong năm 1900–2100.";
+    var vietnamToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Asia/Ho_Chi_Minh"));
+    if (input.TransactionDate > vietnamToday) return "Ngày giao dịch không được ở tương lai.";
     if ((input.Note?.Length ?? 0) > 500) return "Ghi chú tối đa 500 ký tự.";
     var category = await db.Categories.FindAsync(input.CategoryId);
     if (category is null) return "Danh mục không tồn tại.";

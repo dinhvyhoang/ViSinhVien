@@ -1,24 +1,24 @@
 # Ví Sinh Viên
 
-Đồ án đơn giản: **Flutter + ASP.NET Core 8 API + PostgreSQL 16**, quản lý
-database bằng **pgAdmin 4**. Một người dùng, chưa có đăng nhập.
+Đồ án đơn giản: **Flutter + ASP.NET Core 8 API + PostgreSQL 16/18**, quản lý
+database bằng **pgAdmin 4**. Một người dùng, chưa có đăng nhập. **Không có giao dịch, ngân sách hoặc số dư giả**; chỉ các tên danh mục mặc định được khởi tạo theo đặc tả.
 
 Xem [hướng dẫn chạy từng bước](docs/HUONG_DAN_CHAY.md),
 [yêu cầu và thiết kế](docs/YEU_CAU.md), [API](docs/API.md).
 
 Bản đầu gồm thêm/xem/sửa/xóa giao dịch, lọc và tìm kiếm, danh mục có lưu trữ,
-tổng quan tháng, biểu đồ cột theo danh mục, ngân sách và cảnh báo 80%/100%/vượt mức.
+tổng quan tháng, biểu đồ tròn/cột theo danh mục, ngân sách tháng và từng danh mục, cảnh báo 80%/100%/vượt mức, báo cáo tuần/tháng/năm và xuất CSV.
 Giao diện dùng StatefulWidget và HTTP trực tiếp, không thêm kiến trúc phức tạp.
 
 ## Chạy nhanh
 
-Sau khi tạo `.env` và cài .NET 8 + Flutter 3.35.7 + Docker:
+Sau khi tạo `.env` và cài .NET 8 + Flutter 3.47.6 + Docker:
 
 ```sh
 bash scripts/run-api.sh
 ```
 
-Windows dùng `powershell -ExecutionPolicy Bypass -File scripts/run-api.ps1`.
+Windows dùng `powershell -ExecutionPolicy Bypass -File scripts/run-api.ps1` (Docker) hoặc `powershell -ExecutionPolicy Bypass -File scripts/run-api-local.ps1` (PostgreSQL 18 + pgAdmin 4 đã cài sẵn).
 Giữ terminal API mở, mở terminal mới để chạy Android Emulator:
 
 ```sh
@@ -55,3 +55,4 @@ Database này tách riêng với bài `cafe_pos`. Dừng dịch vụ bằng
 
 Không đưa mật khẩu PostgreSQL vào Flutter. Đây là bản demo một người dùng;
 chỉ chạy trong môi trường phát triển, chưa triển khai công khai.
+

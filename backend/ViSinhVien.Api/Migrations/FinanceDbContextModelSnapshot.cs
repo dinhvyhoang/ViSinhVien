@@ -104,6 +104,42 @@ namespace ViSinhVien.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ViSinhVien.Api.Models.CategoryBudget", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateOnly>("BudgetMonth")
+                        .HasColumnType("date")
+                        .HasColumnName("budget_month");
+
+                    b.Property<long>("CategoryId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("category_id");
+
+                    b.Property<long>("LimitVnd")
+                        .HasColumnType("bigint")
+                        .HasColumnName("limit_vnd");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("BudgetMonth", "CategoryId")
+                        .IsUnique();
+
+                    b.ToTable("category_budgets", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_category_budget_limit", "limit_vnd > 0 AND limit_vnd <= 1000000000000");
+
+                            t.HasCheckConstraint("ck_category_budget_month", "EXTRACT(DAY FROM budget_month) = 1");
+                        });
+                });
+
             modelBuilder.Entity("ViSinhVien.Api.Models.FinanceTransaction", b =>
                 {
                     b.Property<long>("Id")
@@ -175,6 +211,37 @@ namespace ViSinhVien.Api.Migrations
 
                             t.HasCheckConstraint("ck_budget_month", "EXTRACT(DAY FROM budget_month) = 1");
                         });
+                });
+
+            modelBuilder.Entity("ViSinhVien.Api.Models.UserProfile", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("display_name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("user_profile", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_single_profile", "id = 1");
+                        });
+                });
+
+            modelBuilder.Entity("ViSinhVien.Api.Models.CategoryBudget", b =>
+                {
+                    b.HasOne("ViSinhVien.Api.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("ViSinhVien.Api.Models.FinanceTransaction", b =>

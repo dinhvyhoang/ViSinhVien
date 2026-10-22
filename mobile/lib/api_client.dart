@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'models.dart';
 
 class ApiException implements Exception {
@@ -13,13 +14,17 @@ class ApiException implements Exception {
 class ApiClient {
   final String baseUrl;
   final http.Client client;
+  // On Chrome use the development machine's loopback URL. Android Emulator
+  // reaches that same machine at 10.0.2.2. Physical phones must pass an
+  // explicit LAN address with --dart-define=API_BASE_URL=http://<IP>:5080.
+  static const _configuredUrl = String.fromEnvironment('API_BASE_URL');
   ApiClient({
-    this.baseUrl = const String.fromEnvironment(
-      'API_BASE_URL',
-      defaultValue: 'http://10.0.2.2:5080',
-    ),
+    String? baseUrl,
     http.Client? client,
-  }) : client = client ?? http.Client();
+  })  : baseUrl = baseUrl ?? (_configuredUrl.isNotEmpty
+            ? _configuredUrl
+            : (kIsWeb ? 'http://127.0.0.1:5080' : 'http://10.0.2.2:5080')),
+        client = client ?? http.Client();
 
   Future<dynamic> request(
     String method,
